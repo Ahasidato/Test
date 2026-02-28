@@ -1,0 +1,37 @@
+name: Auto-Sync Branches
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+      - beta
+
+jobs:
+  sync:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync Beta if Master updated
+        if: github.base_ref == 'master'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout beta
+          git rebase origin/master
+          git push origin beta --force-with-lease
+
+      - name: Sync Develop if Beta updated
+        if: github.base_ref == 'beta'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout develop
+          git rebase origin/beta
+          git push origin develop --force-with-lease
